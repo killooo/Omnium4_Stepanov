@@ -73,12 +73,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 66035c21d7dd2b64d92984481d6ede89, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  _characterTransform: {fileID: 8147309080024760156}
+  _characterController: {fileID: 7633286955499784893}
+  _starterWeaponData: {fileID: 0}
   speed: 5
-  scoreCost: 0
-  timeBetweenAttacks: 1
-  attackDistance: 0
-  characterTransform: {fileID: 8147309080024760156}
-  characterController: {fileID: 7633286955499784893}
+  baseHealth: 50
+  baseDamage: 1
 --- !u!114 &8493117791352124276
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -91,7 +91,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e5e9deec8a3d6774d8414bcd1c1d6ab8, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  characterType: 1
+  characterType: 0
   characterData: {fileID: 6943260198340316765}
 --- !u!1 &2839857138333230862
 GameObject:

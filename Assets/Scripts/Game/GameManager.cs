@@ -1,122 +1,143 @@
-using System.Collections;
-using System.Collections.Generic;
+using Data;
 using UnityEngine;
+using UnityEngine.SceneManagement;
+using UnityEngine.Serialization;
+using Random = UnityEngine.Random;
 
 public class GameManager : MonoBehaviour
 {
-
-    [SerializeField] private GameData gameData;
     [SerializeField] private CharacterFactory characterFactory;
+    [SerializeField] private WindowsService windowsService;
 
-    private ScoreSystem scoreSystem;
-    private float gameSessionTime;
-    private float timeBetweenEnemySpawn;
-  
-    private bool isGameActive;
+    [Space, SerializeField]
+    private GameData _gameData;
+
+
     public static GameManager Instance { get; private set; }
-    public CharacterFactory CharacterFactory=> characterFactory;
 
-    private void Awake()
+    public CharacterFactory CharacterFactory =>
+        characterFactory;
+
+    public WindowsService WindowsService =>
+    windowsService;
+
+    public ScoreManager ScoreManager { get; private set; }
+
+    public float GameTimeSeconds => _gameTimeSec;
+    public bool IsGameActive => _isGameActive;
+
+
+    private bool _isGameActive = false;
+    private float _gameTimeSec = 0;
+    private float _spawnEnemyTimeSec = 0;
+
+
+    public void Awake()
     {
         if (Instance == null)
         {
             Instance = this;
-            DontDestroyOnLoad(gameObject);
+            DontDestroyOnLoad(this);
             Initialize();
         }
         else
         {
-            Destroy(this.gameObject);
+            Destroy(gameObject);
+        }
+    }
+
+    public void GameStart()
+    {
+        var player = CharacterFactory.CreateCharacter(CharacterType.DefaultPlayer);
+        player.transform.position = Vector3.zero;
+        player.gameObject.SetActive(true);
+        player.Initialize();
+        player.HealthComponent.OnCharacterDeath += CharacterDeathHandler;
+        player.gameObject.SetActive(true);
+
+        ScoreManager.StartGame();
+        _gameTimeSec = 0;
+        _isGameActive = true;
+    }
+
+    private void CharacterDeathHandler(Character character)
+    {
+        Debug.LogError("character " + character.gameObject.name + " is dead");
+        switch (character.CharacterType)
+        {
+            case CharacterType.DefaultPlayer:
+                Debug.LogError("GameOver!");
+                Debug.LogError("Score = " + ScoreManager.Score);
+                Debug.LogError("ScoreMax = " + ScoreManager.ScoreMax);
+                _isGameActive = false;
+
+                WindowsService.HideWindow<GameplayWindow>(true);
+                WindowsService.ShowWindow<DefeatWindow>(false);
+                break;
+
+            case CharacterType.DefaultEnemy:
+                ScoreManager.CharacterDeathHandler(character);
+                Debug.LogError("Score = " + ScoreManager.Score);
+                break;
+        }
+
+        CharacterFactory.ReturnToPool(character);
+        character.gameObject.SetActive(false);
+
+        character.HealthComponent.OnCharacterDeath -= CharacterDeathHandler;
+    }
+
+    private void SpawnEnemy()
+    {
+        var character = CharacterFactory.CreateCharacter(CharacterType.DefaultEnemy);
+
+        float posX = CharacterFactory.PlayerCharacter.transform.position.x + GetRandomCoordOffset();
+        float posZ = CharacterFactory.PlayerCharacter.transform.position.z + GetRandomCoordOffset();
+        Vector3 spawnPoint = new Vector3(posX, 0, posZ);
+        character.transform.position = spawnPoint;
+        character.Initialize();
+        character.HealthComponent.OnCharacterDeath += CharacterDeathHandler;
+        character.gameObject.SetActive(true);
+
+
+        float GetRandomCoordOffset()
+        {
+            bool isPlus = Random.Range(0, 1) > 0;
+            float randomOffset = Random.Range(_gameData.MinEnemySpawnDistance, _gameData.MaxEnemySpawnDistance);
+            return isPlus
+                ? randomOffset
+                : -randomOffset;
         }
     }
 
     private void Initialize()
     {
-       scoreSystem = new ScoreSystem();
-        isGameActive = false;
+        ScoreManager = new ScoreManager();
+        windowsService.Initialize();
     }
 
-    public void StartGame() 
-    {
-        if (isGameActive)
-            return;
-        Character player = characterFactory.GetCharacter(CharacterType.Player);
-        player.transform.position= Vector3.zero;
-        player.gameObject.SetActive(true);
-        player.Initialize();
-        player.LiveComponent.OnCharacterDeath += CharacterDeathHandler;
-
-        gameSessionTime = 0;
-        timeBetweenEnemySpawn= gameData.TimeBetweenEnemySpawn;
-        scoreSystem.StartGame();
-        isGameActive=true;
-    }
     private void Update()
     {
-        if(!isGameActive)
+        if (!_isGameActive)
             return;
-        gameSessionTime += Time.deltaTime;
-        timeBetweenEnemySpawn -= Time.deltaTime;
-        if (timeBetweenEnemySpawn <= 0) 
+
+        _gameTimeSec += Time.deltaTime;
+        _spawnEnemyTimeSec += Time.deltaTime;
+
+        if (_spawnEnemyTimeSec >= _gameData.SpawnEnemyTimeSec)
         {
-           SpawnEnemy();
-
-            timeBetweenEnemySpawn = gameData.TimeBetweenEnemySpawn;
+            SpawnEnemy();
+            _spawnEnemyTimeSec = 0;
         }
 
-        if (gameSessionTime >= gameData.SessionTimeSeconds) 
+        if (_gameTimeSec >= _gameData.GameTimeSecondsMax)
         {
-            GameVictory();
+            Debug.Log("Game Over! Time's up!");
+
+            WindowsService.HideWindow<GameplayWindow>(true);
+            WindowsService.ShowWindow<VictoryWindow>(false);
+
+            _isGameActive = false;
         }
     }
-
-    private void CharacterDeathHandler(Character deathCharacter)
-    {
-        switch (deathCharacter.CharacterType)
-        { 
-        
-        case CharacterType.Player:
-                GameOver();
-                break;
-            case CharacterType.DefaultEnemy:
-                scoreSystem.AddScore(deathCharacter.CharacterData.ScoreCost);
-                break;
-        }
-        deathCharacter.gameObject.SetActive(false);
-        characterFactory.ReturnCharacter(deathCharacter);
-
-        deathCharacter.LiveComponent.OnCharacterDeath -= CharacterDeathHandler;
-    }
-
-
-    private void SpawnEnemy()
-    {
-        Character enemy = characterFactory.GetCharacter(CharacterType.DefaultEnemy);
-        Vector3 playerPosition = characterFactory.Player.transform.position;
-        enemy.transform.position = new Vector3(playerPosition.x + GetOffSet(), 0, playerPosition.z + GetOffSet());
-        enemy.gameObject.SetActive(true);
-        enemy.Initialize();
-        enemy.LiveComponent.OnCharacterDeath += CharacterDeathHandler;
-
-        float GetOffSet() 
-        {
-            bool isPlus = Random.Range(0, 100) % 2 == 0;
-            float offset = Random.Range(gameData.MinSpawnOffset, gameData.MaxSpawnOffset);
-            return (isPlus) ? offset : (-1 * offset);
-        }
-    }
-    private void GameVictory() 
-    {
-        scoreSystem.EndGame();
-        Debug.Log("Victory!");
-        isGameActive = false;
-    }
-
-    private void GameOver()
-    {
-        scoreSystem.EndGame();
-        Debug.Log("Game Over!");
-        isGameActive = false;
-    }
-
 }

@@ -1,32 +1,18 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
 public class CharacterData : MonoBehaviour
 {
-    [SerializeField] private float speed;
-    [SerializeField] private int scoreCost;
-    [SerializeField] private float timeBetweenAttacks;
-    [SerializeField] private float attackDistance;
-    [SerializeField] private Transform characterTransform;
-    [SerializeField] private CharacterController characterController;
+    [SerializeField] private Transform _characterTransform;
+    [SerializeField] private CharacterController _characterController;
+    [SerializeField] private WeaponData _starterWeaponData;
 
 
-    public float DefaultSpeed => speed;
+    public float speed;
+    public int baseHealth;
+    public float baseDamage;
 
-    public int ScoreCost => scoreCost;
 
-    public float TimeBetweenAttacks => timeBetweenAttacks;
-
-    public float AttackDistance => attackDistance;
-
-    public Transform CharacterTransform => characterTransform;
-
-    public CharacterController CharacterController
-    {
-        get 
-        { 
-        return characterController; 
-        }
-    }
+    public Transform CharacterTransform => _characterTransform;
+    public CharacterController CharacterController => _characterController;
+    public WeaponData StarterWeaponData => _starterWeaponData;
 }

@@ -73,12 +73,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 66035c21d7dd2b64d92984481d6ede89, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  speed: 3
-  scoreCost: 10
-  timeBetweenAttacks: 1
-  attackDistance: 3
-  characterTransform: {fileID: 8092906139530494908}
-  characterController: {fileID: 7968370064531026477}
+  _characterTransform: {fileID: 8092906139530494908}
+  _characterController: {fileID: 7968370064531026477}
+  _starterWeaponData: {fileID: 0}
+  speed: 2
+  baseHealth: 10
+  baseDamage: 1
 --- !u!114 &2245138538913567716
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -91,9 +91,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: af998adb19900a2478f2b31b884c8105, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  characterType: 2
+  characterType: 1
   characterData: {fileID: 3764509342521054253}
-  currentState: 1
+  _aiState: 2
+  targetCheckingDistance: 2.5
 --- !u!1 &8354792518428249142
 GameObject:
   m_ObjectHideFlags: 0

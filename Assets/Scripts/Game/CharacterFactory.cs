@@ -1,72 +1,90 @@
-using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
+
 
 public class CharacterFactory : MonoBehaviour
 {
-    [SerializeField] private Character playerCharacterPrefab;
-    [SerializeField] private Character enemyCharacterPrefab;
+    [SerializeField]
+    private Character _playerPrefab;
 
-    private Dictionary<CharacterType, Queue<Character>> disabledCharacters = 
-        new Dictionary<CharacterType, Queue<Character>>();
-    private List<Character> activeCharacters = new List<Character>();
+    [Space]
+    [SerializeField]
+    private Character _enemyPrefab;
 
-    public Character Player 
+
+    public PlayerCharacter PlayerCharacter { get; private set; }
+
+
+    private Dictionary<CharacterType, Queue<Character>> pool = new Dictionary<CharacterType, Queue<Character>>();
+
+    private List<Character> activePool = new();
+
+
+    public List<Character> ActivePool => activePool;
+
+
+    public Character CreateCharacter(CharacterType characterType)
     {
-        get; private set;
-    }
+        Character character = GetFromPool(characterType);
 
-    public List<Character> ActiveCharacters => activeCharacters;
-
-    public Character GetCharacter(CharacterType type) 
-    { 
-    Character character = null;
-        if (disabledCharacters.ContainsKey(type))
+ 
+        if (character == null)
         {
-            if (disabledCharacters[type].Count > 0)
-            {
-                character = disabledCharacters[type].Dequeue();
-            }
-        }
-        else 
-        { 
-        disabledCharacters.Add(type, new Queue<Character>());
-        }
-        if (character == null) 
-        {
-            character = InstantiateCharacter(type);
+            character = InstantiateCharacter(characterType);
         }
 
-        activeCharacters.Add(character);
+        activePool.Add(character);
+        character.Initialize();
+
+        if (character is PlayerCharacter player)
+            PlayerCharacter = player;
+
         return character;
     }
 
-    public void ReturnCharacter(Character character) 
+
+    public void ReturnToPool(Character character)
     {
-        Queue<Character> characters = disabledCharacters[character.CharacterType];
-        characters.Enqueue(character);
-        activeCharacters.Remove(character);
+        activePool.Remove(character);
+        var characterType = character.CharacterType;
+        pool[characterType].Enqueue(character);
     }
 
-    private Character InstantiateCharacter(CharacterType type)
+  
+    private Character GetFromPool(CharacterType characterType)
     {
-        Character character = null;
-        switch (type) 
-        {  
-            
-                case CharacterType.Player:
-            character = GameObject.Instantiate(playerCharacterPrefab, null);
-                Player = character;
-                 break;
-               case CharacterType.DefaultEnemy:
-            character = GameObject.Instantiate(enemyCharacterPrefab, null);
+        if (!pool.ContainsKey(characterType))
+        {
+            pool.Add(characterType, new Queue<Character>());
+            return null;
+        }
+
+        if (pool[characterType].Count > 0)
+        {
+            return pool[characterType].Dequeue();
+        }
+        return null;
+    }
+
+
+    private Character InstantiateCharacter(CharacterType characterType)
+    {
+        Character characterObject = null;
+
+        switch (characterType)
+        {
+            case CharacterType.DefaultPlayer:
+                characterObject = GameObject.Instantiate(_playerPrefab, null);
                 break;
-                 default:
-            Debug.LogError("Unknown Character Type = " + type);
+            case CharacterType.DefaultEnemy:
+                characterObject = GameObject.Instantiate(_enemyPrefab, null);
+                break;
+            default:
+                Debug.LogError("Unknown character type: " + characterType);
                 break;
         }
-       
-        return character;
-    }
 
+        return characterObject;
+    }
 }
